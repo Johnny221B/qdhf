@@ -283,7 +283,7 @@ def run_experiment(
             itr_start = time.time()
 
             # Update archive.
-            if online_finetune:
+            if online_finetune: # 这个onlin 会让archive在这几个ite更新
                 update_schedule = [1, 101, 251, 501]
             else:
                 update_schedule = [1]
@@ -295,7 +295,7 @@ def run_experiment(
                     )
 
                     # Initialize the dis embed.
-                    if use_dis_embed:
+                    if use_dis_embed: # dis_embed是对比学习的latent projector
                         inputs = np.random.uniform(
                             low=-np.pi, high=np.pi, size=(n_pref_data * 3, dim)
                         )
@@ -305,7 +305,7 @@ def run_experiment(
                         dis_embed, dis_embed_acc = fit_dis_embed(
                             dis_embed_data,
                             dis_embed_gt_measures,
-                            latent_dim=2,
+                            latent_dim=2,  # 最终行为空间是二维的，可以画 heatmap
                             seed=seed,
                         )
                     else:
@@ -318,11 +318,13 @@ def run_experiment(
 
                     # Update the dis embed.
                     if use_dis_embed:
+                        # 从 archive 中采样新的三元组
                         additional_inputs = [
                             all_sols[np.random.choice(all_sols.shape[0], 3)]
                             for _ in range(n_pref_data)
                         ]
                         additional_inputs = np.array(additional_inputs)
+                        # 计算这些三元组的 ground-truth 行为 measure
                         _, additional_gt_measures = evaluate_grasp(
                             additional_inputs.reshape(n_pref_data * 3, dim),
                             method="qd",
@@ -330,9 +332,11 @@ def run_experiment(
                         additional_gt_measures = additional_gt_measures.reshape(
                             n_pref_data, 3, 2
                         )
+                        # 把这些新的三元组样本 添加到原始 dis_embed 训练集里
                         dis_embed_data = np.concatenate(
                             (dis_embed_data, additional_inputs), axis=0
                         )
+                        # measure也更新
                         dis_embed_gt_measures = np.concatenate(
                             (dis_embed_gt_measures, additional_gt_measures), axis=0
                         )
